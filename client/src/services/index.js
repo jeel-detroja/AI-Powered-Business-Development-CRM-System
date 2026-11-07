@@ -112,8 +112,8 @@ export const analyticsService = {
 export const aiService = {
   chat: (data) => api.post('/ai/assistant', data),
   generateEmail: (data) => api.post('/ai/generate-email', data),
-  getBusinessInsights: () => api.get('/ai/business-insights'),
-  testConnection: () => api.get('/ai/test-connection'),
+  getBusinessInsights: () => api.get('/ai/insights'),
+  testConnection: () => api.get('/ai/test'),
   getAISettings: () => api.get('/settings/ai'),
 };
 

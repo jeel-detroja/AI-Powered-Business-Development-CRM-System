@@ -146,10 +146,10 @@ export default function Dashboard() {
               <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
               <XAxis dataKey="stage" tick={{ fontSize: 11 }} />
               <YAxis tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v) => [`$${v.toLocaleString()}`, 'Value']} />
+              <Tooltip formatter={(v) => [formatCurrency(v), 'Value']} />
               <Legend />
               <Bar dataKey="count" fill="#6366f1" name="Deals" radius={[4, 4, 0, 0]} />
-              <Bar dataKey="value" fill="#8b5cf6" name="Value ($)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="value" fill="#8b5cf6" name="Value (₹)" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

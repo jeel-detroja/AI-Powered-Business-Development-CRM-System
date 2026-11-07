@@ -1,4 +1,4 @@
-export { getGeminiClient, getModelName, isAIEnabled, testConnection, generateContent } from './client.js';
+export { getGeminiClient, getModelName, isAIEnabled, testConnection, generateContent, generateChatContent } from './client.js';
 export {
   analyzeLeadWithAI,
   calculateLeadScore,

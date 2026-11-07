@@ -33,7 +33,7 @@ export default function AIAssistant() {
   }, [messages]);
 
   const chatMutation = useMutation({
-    mutationFn: (msg) => aiService.chat({ message: msg, conversationId }),
+    mutationFn: (msg) => aiService.chat({ message: msg, conversationId: conversationId || undefined }),
     onSuccess: (res) => {
       const data = res.data.data;
       if (data.conversationId) setConversationId(data.conversationId);
@@ -55,7 +55,7 @@ export default function AIAssistant() {
         ...prev,
         {
           role: 'assistant',
-          content: `⚠️ Unable to process request: ${errMsg}. Please verify that GEMINI_API_KEY is configured in your backend environment.`,
+          content: `⚠️ Unable to process request: ${errMsg}`,
           isError: true,
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         },

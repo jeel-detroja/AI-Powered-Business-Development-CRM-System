@@ -39,7 +39,7 @@ export const exportLeads = asyncHandler(async (req, res) => {
     .populate('assignedTo', 'firstName lastName')
     .lean();
 
-  const headers = ['ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Company', 'Job Title', 'Industry', 'Location', 'Source', 'Status', 'Priority', 'Score', 'Budget', 'Assigned To', 'Created At'];
+  const headers = ['ID', 'First Name', 'Last Name', 'Email', 'Phone', 'Company', 'Job Title', 'Industry', 'Location', 'Source', 'Status', 'Priority', 'Score', 'Budget (₹)', 'Assigned To', 'Created At'];
   const fields = ['_id', 'firstName', 'lastName', 'email', 'phone', 'companyName', 'jobTitle', 'industry', 'location', 'source', 'status', 'priority', 'score', 'estimatedBudget', 'assignedTo.firstName', 'createdAt'];
 
   streamCsv(res, 'leads-export.csv', headers, fields, leads);
@@ -73,7 +73,7 @@ export const exportDeals = asyncHandler(async (req, res) => {
     .populate('company', 'name')
     .lean();
 
-  const headers = ['ID', 'Title', 'Value', 'Stage', 'Probability', 'Priority', 'Company', 'Owner', 'Expected Close', 'Created At'];
+  const headers = ['ID', 'Title', 'Value (₹)', 'Stage', 'Probability', 'Priority', 'Company', 'Owner', 'Expected Close', 'Created At'];
   const fields = ['_id', 'title', 'value', 'stage', 'probability', 'priority', 'company.name', 'owner.firstName', 'expectedCloseDate', 'createdAt'];
 
   streamCsv(res, 'deals-export.csv', headers, fields, deals);

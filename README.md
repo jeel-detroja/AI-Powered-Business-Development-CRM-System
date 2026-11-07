@@ -40,9 +40,12 @@ Nexora CRM is an enterprise-grade full-stack SaaS platform designed for modern s
   - Helmet, CORS, and Express Rate Limit
   - Express Mongo Sanitize
 - **AI Engine**:
-  - Google Gemini API (`gemini-2.0-flash-001`)
+  - Google Gemini API (`gemini-3.1-flash-lite`)
   - Official SDK: `@google/genai`
-  - Function calling with allow-listed execution sandbox
+  - Grounded live CRM context injection and multi-model fallback (`gemini-3.1-flash-lite`, `gemini-3.5-flash`, `gemini-flash-lite-latest`)
+- **Localization**:
+  - Full Indian Rupee (`₹` / INR) formatting and `en-IN` numbering standard (`₹1,50,000`)
+  - Realistic Indian enterprise sample data (organizations, leads, deals, contacts)
 
 ---
 
@@ -111,11 +114,14 @@ cd nexora-crm
 
 ### Step 2: Configure Environment Variables
 
+> **Security Note:** Real `.env` files contain sensitive secrets and are **strictly git-ignored**. Only copy from the provided `.env.example` templates.
+
 **Backend (`server/.env`):**
 ```bash
-cp server/.env.example server/.env
+# In the server directory:
+cp .env.example .env
 ```
-Ensure your `server/.env` contains:
+Ensure your `server/.env` contains your actual configuration:
 ```env
 PORT=5000
 NODE_ENV=development
@@ -123,17 +129,26 @@ MONGODB_URI=mongodb://127.0.0.1:27017/nexora_crm
 JWT_SECRET=super_secret_jwt_key_nexora_2026
 CLIENT_URL=http://localhost:5173
 COOKIE_SECRET=super_secret_cookie_key_nexora_2026
+
+# Google Gemini API (leave blank to run CRM without AI features)
 GEMINI_API_KEY=your_gemini_api_key_here
-GEMINI_MODEL=gemini-2.0-flash-001
+GEMINI_MODEL=gemini-3.1-flash-lite
+GEMINI_TIMEOUT_MS=30000
+
+# Rate limiting
+RATE_LIMIT_WINDOW_MS=900000
+RATE_LIMIT_MAX=300
+AI_RATE_LIMIT_MAX=40
 ```
 
-**Frontend (`client/.env`):**
+**Frontend (`client/.env` - optional in development due to Vite proxy):**
 ```bash
-cp client/.env.example client/.env
+# In the client directory (optional):
+cp .env.example .env
 ```
-Ensure your `client/.env` contains:
+Contains:
 ```env
-VITE_API_URL=http://localhost:5000/api
+VITE_API_URL=/api
 ```
 
 ### Step 3: Install Dependencies
@@ -220,9 +235,10 @@ npm test
 - `POST /api/leads/:id/analyze` — Trigger Google Gemini lead intelligence
 - `GET /api/deals/pipeline` — Grouped deals by stage with weighted pipeline metrics
 - `PATCH /api/deals/:id/stage` — Move deal through pipeline stages
-- `POST /api/ai/assistant` — Interactive Gemini sales assistant with function calling
+- `POST /api/ai/assistant` — Interactive Gemini sales assistant with live CRM context
 - `POST /api/ai/generate-email` — Compose contextual sales emails
-- `GET /api/ai/business-insights` — AI synthesis of CRM database metrics
+- `GET /api/ai/insights` — AI synthesis of CRM database metrics
+- `GET /api/ai/test` — Test Google Gemini API connectivity & model availability
 - `GET /api/export/leads` — Download full CSV export of leads
 
 ---

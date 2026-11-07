@@ -7,30 +7,57 @@ import {
   isAIEnabled,
   generateEmail as aiGenerateEmail,
   generateBusinessInsights,
-  assistantFunctions,
-  executeFunctionCall,
   testConnection as aiTestConnection,
+  generateChatContent,
 } from '../services/gemini/index.js';
-import { getGeminiClient, getModelName } from '../services/gemini/client.js';
 
-// ── AI Sales Assistant (chat with function calling) ──
+// ── Fetch real CRM context to inject into the AI prompt ──
+async function fetchCRMContext(orgId, userId) {
+  const now = new Date();
+  const [
+    totalLeads, newLeads, qualifiedLeads, convertedLeads,
+    activeDeals, wonDeals,
+    overdueTasks,
+    overdueActivities,
+    recentLeads,
+    recentDeals,
+  ] = await Promise.all([
+    Lead.countDocuments({ organization: orgId, isDeleted: { $ne: true } }),
+    Lead.countDocuments({ organization: orgId, isDeleted: { $ne: true }, status: 'New' }),
+    Lead.countDocuments({ organization: orgId, isDeleted: { $ne: true }, status: 'Qualified' }),
+    Lead.countDocuments({ organization: orgId, isDeleted: { $ne: true }, status: 'Converted' }),
+    Deal.countDocuments({ organization: orgId, isDeleted: { $ne: true }, stage: { $nin: ['Won', 'Lost'] } }),
+    Deal.find({ organization: orgId, isDeleted: { $ne: true }, stage: 'Won' }).select('value').lean(),
+    Task.countDocuments({ organization: orgId, isDeleted: { $ne: true }, status: { $ne: 'Completed' }, dueDate: { $lt: now } }),
+    Activity.countDocuments({ organization: orgId, isDeleted: { $ne: true }, isCompleted: false, dueAt: { $lt: now } }),
+    Lead.find({ organization: orgId, isDeleted: { $ne: true } })
+      .sort('-createdAt').limit(5)
+      .select('firstName lastName companyName status priority score source')
+      .lean(),
+    Deal.find({ organization: orgId, isDeleted: { $ne: true }, stage: { $nin: ['Won', 'Lost'] } })
+      .sort('-value').limit(5)
+      .select('title value stage')
+      .lean(),
+  ]);
+
+  const totalRevenue = wonDeals.reduce((s, d) => s + (d.value || 0), 0);
+  const conversionRate = totalLeads > 0 ? Math.round((convertedLeads / totalLeads) * 100) : 0;
+
+  return {
+    summary: { totalLeads, newLeads, qualifiedLeads, convertedLeads, conversionRate, activeDeals, wonDealsCount: wonDeals.length, totalRevenue, overdueTasks, overdueActivities },
+    recentLeads,
+    topDeals: recentDeals,
+  };
+}
+
+// ── AI Sales Assistant (prompt-injection approach — no function calling) ──
 export const chat = asyncHandler(async (req, res) => {
   if (!isAIEnabled()) throw ApiError.serviceUnavailable('AI is not configured. Set GEMINI_API_KEY.');
 
   const { message, conversationId } = z.object({
     message: z.string().min(1),
-    conversationId: z.string().optional(),
+    conversationId: z.string().nullable().optional(),
   }).parse(req.body);
-
-  // Build org context
-  const [totalLeads, activeDeals, overdueTasks] = await Promise.all([
-    Lead.countDocuments({ organization: req.orgId, isDeleted: { $ne: true } }),
-    Deal.countDocuments({ organization: req.orgId, isDeleted: { $ne: true }, stage: { $nin: ['Won', 'Lost'] } }),
-    Task.countDocuments({
-      organization: req.orgId, isDeleted: { $ne: true },
-      status: { $ne: 'Completed' }, dueDate: { $lt: new Date() },
-    }),
-  ]);
 
   // Load or create conversation
   let conversation;
@@ -46,61 +73,49 @@ export const chat = asyncHandler(async (req, res) => {
     });
   }
 
-  const systemInstruction = `You are Nexora AI, an intelligent sales assistant for a CRM platform.
-Current user: ${req.user.firstName} ${req.user.lastName} (${req.user.role})
-Organization context: ${totalLeads} total leads, ${activeDeals} active deals, ${overdueTasks} overdue tasks.
-Today's date: ${new Date().toDateString()}.
-You have access to CRM functions to look up real data. Be concise, professional, and actionable.`;
+  // Fetch live CRM data to inject into the prompt
+  const crm = await fetchCRMContext(req.orgId, req.user._id);
+  const crmContext = `
+## Live CRM Data (as of ${new Date().toLocaleString('en-IN')}):
+**Summary:** ${crm.summary.totalLeads} total leads | ${crm.summary.newLeads} new | ${crm.summary.qualifiedLeads} qualified | ${crm.summary.convertedLeads} converted (${crm.summary.conversionRate}% conversion rate)
+**Deals:** ${crm.summary.activeDeals} active deals | ${crm.summary.wonDealsCount} won | ₹${crm.summary.totalRevenue.toLocaleString('en-IN')} total revenue
+**Alerts:** ${crm.summary.overdueTasks} overdue tasks | ${crm.summary.overdueActivities} overdue activities
 
-  // Build history (last 10 messages)
-  const history = conversation.messages.slice(-10).map((m) => ({
-    role: m.role,
-    parts: [{ text: m.text }],
+**Recent Leads:**
+${crm.recentLeads.map((l) => `- ${l.firstName} ${l.lastName} (${l.companyName || 'No company'}) — ${l.status}, ${l.priority} priority, score: ${l.score || 'N/A'}, source: ${l.source}`).join('\n') || 'None'}
+
+**Top Active Deals:**
+${crm.topDeals.map((d) => `- ${d.title} — ₹${(d.value || 0).toLocaleString('en-IN')} (${d.stage})`).join('\n') || 'None'}`;
+
+  const systemInstruction = `You are Nexora AI, an intelligent CRM sales assistant for ${req.user.firstName} ${req.user.lastName} (${req.user.role}).
+You have access to live CRM data provided in every message. Use it to give specific, data-driven answers.
+Be concise, professional, and actionable. Format responses in readable markdown when helpful.
+Today's date: ${new Date().toDateString()}.`;
+
+  // Build conversation history (last 8 turns only, plain text)
+  const history = conversation.messages.slice(-8).map((m) => ({
+    role: m.role === 'model' ? 'model' : 'user',
+    parts: [{ text: m.text || '' }],
   }));
+
+  // Inject CRM context into the current user message
+  const enrichedMessage = `${crmContext}\n\n---\n**User question:** ${message}`;
 
   const contents = [
     ...history,
-    { role: 'user', parts: [{ text: message }] },
+    { role: 'user', parts: [{ text: enrichedMessage }] },
   ];
 
-  const client = getGeminiClient();
-  const model = getModelName();
-  const tools = [{ functionDeclarations: assistantFunctions }];
-  const config = { systemInstruction, tools };
-
-  let response = await client.models.generateContent({ model, contents, config });
-
-  // Function calling loop with maximum turn safeguard
-  let functionResults = [];
-  let turns = 0;
-  const maxTurns = 5;
-  while (response.functionCalls && response.functionCalls.length > 0 && turns++ < maxTurns) {
-    const calls = response.functionCalls;
-    functionResults = await Promise.all(
-      calls.map(async (fc) => {
-        const result = await executeFunctionCall(fc.name, fc.args || {}, req.orgId, req.user._id);
-        return { name: fc.name, response: { result } };
-      })
-    );
-
-    const updatedContents = [
-      ...contents,
-      { role: 'model', parts: calls.map((fc) => ({ functionCall: fc })) },
-      { role: 'user', parts: functionResults.map((fr) => ({ functionResponse: fr })) },
-    ];
-
-    response = await client.models.generateContent({ model, contents: updatedContents, config });
-  }
-
+  const response = await generateChatContent({ contents, config: { systemInstruction } });
   const replyText = response.text ?? '';
 
-  // Persist conversation
+  // Persist conversation (store original message, not the enriched one)
   conversation.messages.push({ role: 'user', text: message });
-  conversation.messages.push({ role: 'model', text: replyText, functionCalls: functionResults });
+  conversation.messages.push({ role: 'model', text: replyText });
   await conversation.save();
 
   return sendSuccess(res, {
-    data: { reply: replyText, conversationId: conversation._id, functionResults },
+    data: { reply: replyText, conversationId: conversation._id, functionResults: [] },
   });
 });
 
@@ -110,14 +125,14 @@ export const generateEmail = asyncHandler(async (req, res) => {
 
   const options = z.object({
     recipientName: z.string().min(1),
-    recipientCompany: z.string().optional().default(''),
-    recipientJobTitle: z.string().optional().default(''),
-    emailType: z.string().optional().default('Introduction'),
-    tone: z.string().optional().default('Professional'),
-    length: z.string().optional().default('Medium'),
-    objective: z.string().optional().default(''),
-    productInfo: z.string().optional().default(''),
-    leadDetails: z.string().optional().default(''),
+    recipientCompany: z.string().nullable().optional().default(''),
+    recipientJobTitle: z.string().nullable().optional().default(''),
+    emailType: z.string().nullable().optional().default('Introduction'),
+    tone: z.string().nullable().optional().default('Professional'),
+    length: z.string().nullable().optional().default('Medium'),
+    objective: z.string().nullable().optional().default(''),
+    productInfo: z.string().nullable().optional().default(''),
+    leadDetails: z.string().nullable().optional().default(''),
   }).parse(req.body);
 
   const email = await aiGenerateEmail(options);

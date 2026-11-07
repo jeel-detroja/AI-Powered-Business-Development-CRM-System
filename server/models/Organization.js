@@ -7,8 +7,8 @@ const organizationSchema = new mongoose.Schema(
     website: { type: String, trim: true, default: '' },
     settings: {
       aiEnabled: { type: Boolean, default: true },
-      currency: { type: String, default: 'USD' },
-      timezone: { type: String, default: 'UTC' },
+      currency: { type: String, default: 'INR' },
+      timezone: { type: String, default: 'Asia/Kolkata' },
     },
   },
   { timestamps: true }

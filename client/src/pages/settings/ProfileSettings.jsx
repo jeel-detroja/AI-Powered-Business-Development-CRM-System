@@ -110,6 +110,7 @@ export default function ProfileSettings() {
             <label className="label">Phone</label>
             <input
               className="input"
+              placeholder="+91 98765 43210"
               value={profileForm.phone}
               onChange={(e) => setProfileForm({ ...profileForm, phone: e.target.value })}
             />

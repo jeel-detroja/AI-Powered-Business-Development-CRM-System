@@ -1,5 +1,12 @@
 import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Explicitly load server/.env regardless of current working directory
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+// Also allow override from root directory .env if present
 dotenv.config();
 
 const required = ['MONGODB_URI', 'JWT_SECRET'];
@@ -16,7 +23,7 @@ export const env = {
   cookieSecret: process.env.COOKIE_SECRET || process.env.JWT_SECRET || 'dev_cookie_secret',
   gemini: {
     apiKey: process.env.GEMINI_API_KEY || '',
-    model: process.env.GEMINI_MODEL || 'gemini-2.0-flash-001',
+    model: process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite',
     timeoutMs: parseInt(process.env.GEMINI_TIMEOUT_MS || '30000', 10),
     get enabled() {
       return Boolean((process.env.GEMINI_API_KEY || '').trim());

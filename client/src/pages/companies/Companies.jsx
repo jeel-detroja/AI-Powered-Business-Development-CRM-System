@@ -237,7 +237,7 @@ export default function Companies() {
               <label className="label">Location</label>
               <input
                 className="input"
-                placeholder="e.g. Austin, TX"
+                placeholder="e.g. Bengaluru, Karnataka"
                 value={form.location}
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
               />
@@ -264,7 +264,7 @@ export default function Companies() {
               <label className="label">Revenue Range</label>
               <input
                 className="input"
-                placeholder="e.g. $10M-$50M"
+                placeholder="e.g. ₹10 Cr - ₹50 Cr"
                 value={form.annualRevenueRange}
                 onChange={(e) => setForm({ ...form, annualRevenueRange: e.target.value })}
               />

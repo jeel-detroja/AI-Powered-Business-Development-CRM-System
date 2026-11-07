@@ -51,14 +51,14 @@ export default function Analytics() {
       {/* Row 1: Revenue Trends & Lead Growth */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="card p-5">
-          <h3 className="font-semibold text-gray-900 text-sm mb-4">Monthly Revenue Influx ($)</h3>
+          <h3 className="font-semibold text-gray-900 text-sm mb-4">Monthly Revenue Influx (₹)</h3>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={revenue}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
                 <XAxis dataKey="month" tick={{ fontSize: 11 }} />
                 <YAxis tick={{ fontSize: 11 }} />
-                <Tooltip formatter={(v) => [`$${v.toLocaleString()}`, 'Revenue']} />
+                <Tooltip formatter={(v) => [formatCurrency(v), 'Revenue']} />
                 <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={2} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>

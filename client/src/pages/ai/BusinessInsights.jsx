@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { aiService } from '../../services/index';
-import { formatCurrency, formatNumber } from '../../utils/index';
+import { formatCurrency, formatNumber, getErrorMessage } from '../../utils/index';
 import { TableSkeleton } from '../../components/common/Skeleton';
 import ErrorState from '../../components/common/ErrorState';
 import {
@@ -15,7 +15,15 @@ export default function BusinessInsights() {
   });
 
   if (isLoading) return <TableSkeleton rows={8} cols={4} />;
-  if (error) return <ErrorState message="Failed to generate AI insights. Please check GEMINI_API_KEY configuration." onRetry={refetch} />;
+  if (error) {
+    const errorMsg = getErrorMessage(error);
+    return (
+      <ErrorState
+        message={errorMsg || 'Failed to generate AI insights. Please check GEMINI_API_KEY in server/.env and restart the server.'}
+        onRetry={refetch}
+      />
+    );
+  }
 
   const insightsData = data?.data?.data?.insights || {};
   const metrics = data?.data?.data?.metrics || {};
@@ -52,10 +60,9 @@ export default function BusinessInsights() {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className={`badge ${
-                overallHealth === 'good' ? 'bg-emerald-100 text-emerald-800' :
-                overallHealth === 'needs_attention' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
-              }`}>
+              <span className={`badge ${overallHealth === 'good' ? 'bg-emerald-100 text-emerald-800' :
+                  overallHealth === 'needs_attention' ? 'bg-amber-100 text-amber-800' : 'bg-red-100 text-red-800'
+                }`}>
                 Pipeline Health: {overallHealth.toUpperCase().replace('_', ' ')}
               </span>
             </div>
@@ -100,9 +107,8 @@ export default function BusinessInsights() {
             >
               <div className="flex items-start justify-between gap-2">
                 <h4 className="font-semibold text-gray-900 text-sm">{item.title}</h4>
-                <span className={`badge text-[10px] ${
-                  isHigh ? 'bg-red-100 text-red-700' : isMedium ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
-                }`}>
+                <span className={`badge text-[10px] ${isHigh ? 'bg-red-100 text-red-700' : isMedium ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'
+                  }`}>
                   {item.priority} priority
                 </span>
               </div>

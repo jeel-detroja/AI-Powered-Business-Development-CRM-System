@@ -1,22 +1,22 @@
 // Formatting utilities
-export function formatCurrency(value, currency = 'USD') {
+export function formatCurrency(value, currency = 'INR') {
   if (!value && value !== 0) return '—';
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency, maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat('en-IN', { style: 'currency', currency, maximumFractionDigits: 0 }).format(value);
 }
 
 export function formatNumber(value) {
   if (!value && value !== 0) return '—';
-  return new Intl.NumberFormat('en-US').format(value);
+  return new Intl.NumberFormat('en-IN').format(value);
 }
 
 export function formatDate(date) {
   if (!date) return '—';
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' }).format(new Date(date));
+  return new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(date));
 }
 
 export function formatDateTime(date) {
   if (!date) return '—';
-  return new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }).format(new Date(date));
+  return new Intl.DateTimeFormat('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true }).format(new Date(date));
 }
 
 export function formatRelativeTime(date) {
@@ -60,7 +60,11 @@ export function getInitials(firstName, lastName) {
 
 // Get error message from axios error
 export function getErrorMessage(err) {
-  return err?.response?.data?.message || err?.message || 'Something went wrong';
+  const data = err?.response?.data;
+  if (data?.details && Array.isArray(data.details)) {
+    return `${data.message}: ${data.details.map((d) => (typeof d === 'object' && d ? (d.path ? `${d.path} (${d.message})` : d.message) : d)).join('; ')}`;
+  }
+  return data?.message || err?.message || 'Something went wrong';
 }
 
 // Debounce

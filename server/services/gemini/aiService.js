@@ -20,7 +20,7 @@ Lead Information:
 - Lead Source: ${lead.source}
 - Lead Status: ${lead.status}
 - Priority: ${lead.priority}
-- Estimated Budget: ${lead.estimatedBudget ? '$' + lead.estimatedBudget.toLocaleString() : 'Not provided'}
+- Estimated Budget: ${lead.estimatedBudget ? '₹' + lead.estimatedBudget.toLocaleString('en-IN') : 'Not provided'}
 - Requirements: ${lead.requirements || 'Not provided'}
 - Interested In: ${lead.interestedIn || 'Not provided'}
 - Notes: ${lead.notes || 'None'}
@@ -71,7 +71,7 @@ export function calculateLeadScore(lead, qualitative = null) {
   else if (lead.estimatedBudget >= 20000) budgetScore = 12;
   else if (lead.estimatedBudget >= 5000) budgetScore = 8;
   else if (lead.estimatedBudget > 0) budgetScore = 4;
-  breakdown.push({ label: 'Budget', points: budgetScore, max: 15, reason: lead.estimatedBudget ? `$${lead.estimatedBudget.toLocaleString()}` : 'Not specified' });
+  breakdown.push({ label: 'Budget', points: budgetScore, max: 15, reason: lead.estimatedBudget ? `₹${lead.estimatedBudget.toLocaleString('en-IN')}` : 'Not specified' });
   total += budgetScore;
 
   // 3. Engagement (0-15)

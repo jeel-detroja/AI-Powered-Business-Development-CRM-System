@@ -138,6 +138,7 @@ export default function LeadForm() {
               <label className="label">Phone Number</label>
               <input
                 className="input"
+                placeholder="+91 98765 43210"
                 value={form.phone}
                 onChange={(e) => setForm({ ...form, phone: e.target.value })}
               />
@@ -176,6 +177,7 @@ export default function LeadForm() {
               <label className="label">Location / City</label>
               <input
                 className="input"
+                placeholder="e.g. Bengaluru, Karnataka"
                 value={form.location}
                 onChange={(e) => setForm({ ...form, location: e.target.value })}
               />
@@ -232,14 +234,18 @@ export default function LeadForm() {
               </select>
             </div>
             <div>
-              <label className="label">Estimated Budget ($)</label>
-              <input
-                type="number"
-                min="0"
-                className="input"
-                value={form.estimatedBudget}
-                onChange={(e) => setForm({ ...form, estimatedBudget: e.target.value })}
-              />
+              <label className="label">Estimated Budget (₹)</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold text-sm">₹</span>
+                <input
+                  type="number"
+                  min="0"
+                  className="input pl-7"
+                  placeholder="0"
+                  value={form.estimatedBudget || ''}
+                  onChange={(e) => setForm({ ...form, estimatedBudget: e.target.value })}
+                />
+              </div>
             </div>
             <div>
               <label className="label">Interested In Product/Service</label>

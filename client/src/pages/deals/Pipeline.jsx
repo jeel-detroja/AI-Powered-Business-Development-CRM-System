@@ -207,15 +207,19 @@ export default function Pipeline() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="label">Deal Value ($) *</label>
-              <input
-                type="number"
-                min="0"
-                className="input"
-                required
-                value={form.value}
-                onChange={(e) => setForm({ ...form, value: e.target.value })}
-              />
+              <label className="label">Deal Value (₹) *</label>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold text-sm">₹</span>
+                <input
+                  type="number"
+                  min="0"
+                  className="input pl-7"
+                  placeholder="0"
+                  required
+                  value={form.value || ''}
+                  onChange={(e) => setForm({ ...form, value: parseFloat(e.target.value) || 0 })}
+                />
+              </div>
             </div>
             <div>
               <label className="label">Probability (%)</label>
